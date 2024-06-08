@@ -4,9 +4,9 @@ import { useContextMenu, useUserModal } from "../hooks"
 import { useEffect, useRef, useState } from "react"
 
 export default function MessageC({ message, setReply, extraClass }: { message: Message, setReply: (reply: Message | undefined) => void, extraClass?: string[] }) {
-    const [UserModal, isUserModalOpen, toggleUserModal] = useUserModal(message.author)
+    const [Message, setMessage] = useState<Message>(message)
 
-    const [content, setContent] = useState(message.content)
+    const [UserModal, isUserModalOpen, toggleUserModal] = useUserModal(Message.author)
     const messageRef = useRef<HTMLDivElement>(null)
     const [ContextMenu, isContextMenuOpen, toggleContextMenu] = useContextMenu({
         autoClose: true,
@@ -14,20 +14,20 @@ export default function MessageC({ message, setReply, extraClass }: { message: M
             {
                 text: "Reply",
                 callback(event, item) {
-                    setReply(message)
+                    setReply(Message)
                 },
             },
             {
                 text: "Copy Text",
                 callback(event, item) {
-                    navigator.clipboard.writeText(message.content)
+                    navigator.clipboard.writeText(Message.content)
                 }
             },
             { type: "seperator" },
             {
                 text: "Copy Message ID",
                 callback(event, item) {
-                    navigator.clipboard.writeText(message.id)
+                    navigator.clipboard.writeText(Message.id)
                 },
             }
         ]
@@ -39,17 +39,17 @@ export default function MessageC({ message, setReply, extraClass }: { message: M
 
     useEffect(() => {
         function messageDelete(e: any, dmessage: Message) {
-            if (dmessage.id == message.id) {
+            if (dmessage.id == Message.id) {
                 window.api.removeListener("messageDelete", messageDelete)
                 messageRef.current!.classList.add("deleted")
-                console.log(`received messageDelete from ${message.author.username}: ${message.content}`)
+                console.log(`received messageDelete from ${Message.author.username}: ${Message.content}`)
             }
         }
         
         function messageEdit(e: any, editedMessage: Message, newMessage: Message) {
-            if (editedMessage.id === message.id) {
+            if (editedMessage.id === Message.id) {
                 window.api.removeListener("messageEdit", messageEdit)
-                setContent(newMessage.content)
+                setMessage(newMessage)
             }
         }
 
@@ -66,21 +66,21 @@ export default function MessageC({ message, setReply, extraClass }: { message: M
         
         <div ref={messageRef} id="message" className={"hover" + (extraClass ? " " + extraClass.join(" ") : "")} onContextMenu={toggleContextMenu}>
             <div id="messagecontent">
-                {!extraClass?.includes("anothermessage") && <PFP src={message.author.avatar} height={42} width={42} onClick={toggleUserModal}/>}
+                {!extraClass?.includes("anothermessage") && <PFP src={Message.author.avatar} height={42} width={42} onClick={toggleUserModal}/>}
                 <div id="content">
                     {!extraClass?.includes("anothermessage") &&
                         <div>
-                            <p id="username" style={{color: message.author.displayColor}} onClick={toggleUserModal}>{message.author.displayName}</p>
-                            {(message.author.bot || message.author.webhook) && <BotBadge member={message.author} />}
-                            <p id="time">{message.createdAt}</p>
+                            <p id="username" style={{color: Message.author.displayColor}} onClick={toggleUserModal}>{Message.author.displayName}</p>
+                            {(Message.author.bot || Message.author.webhook) && <BotBadge member={Message.author} />}
+                            <p id="time">{Message.createdAt}</p>
                         </div>
                     }
                     <div id="msg">
                         <div id="msgcontent">
                             {content}
-                            {message.editedTimestamp && <p id="edited">(edited)</p>}
+                            {Message.editedTimestamp && <p id="edited">(edited)</p>}
                         </div>
-                        {message.embeds?.map((embed, index) => {
+                        {Message.embeds?.map((embed, index) => {
                             const data = embed.data
                             return <div key={index} id ="embed">
                                 <div id="color" style={{background: "#" + (data.color ? data.color.toString(16).padStart(6, '0') : "101010")}} />
@@ -125,7 +125,7 @@ export default function MessageC({ message, setReply, extraClass }: { message: M
                                 </div>
                             </div>
                         })}
-                        {message.attachments?.map((attachment, index) => 
+                        {Message.attachments?.map((attachment, index) => 
                             <div key={index} id="attachments">
                                 {
                                     attachment.contentType?.startsWith("image") ? <img src={attachment.url}/> :
