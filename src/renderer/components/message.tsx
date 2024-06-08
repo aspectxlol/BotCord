@@ -1,10 +1,12 @@
 import { Message } from "src/shared/types"
 import { BotBadge, PFP } from "."
 import { useContextMenu, useUserModal } from "../hooks"
-import { useEffect, useRef } from "react"
+import { useEffect, useRef, useState } from "react"
 
 export default function MessageC({ message, setReply, extraClass }: { message: Message, setReply: (reply: Message | undefined) => void, extraClass?: string[] }) {
     const [UserModal, isUserModalOpen, toggleUserModal] = useUserModal(message.author)
+
+    const [content, setContent] = useState(message.content)
     const messageRef = useRef<HTMLDivElement>(null)
     const [ContextMenu, isContextMenuOpen, toggleContextMenu] = useContextMenu({
         autoClose: true,
@@ -43,8 +45,19 @@ export default function MessageC({ message, setReply, extraClass }: { message: M
                 console.log(`received messageDelete from ${message.author.username}: ${message.content}`)
             }
         }
+        
+        function messageEdit(e: any, editedMessage: Message, newMessage: Message) {
+            if (editedMessage.id === message.id) {
+                window.api.removeListener("messageEdit", messageEdit)
+                setContent(newMessage.content)
+            }
+        }
+
         window.api.removeListener("messageDelete", messageDelete)
         window.api.addListener("messageDelete", messageDelete)
+        window.api.removeListener("messageEdit", messageEdit)
+        window.api.addListener("messageEdit", messageEdit)
+
     })
 
     return <>
@@ -64,7 +77,7 @@ export default function MessageC({ message, setReply, extraClass }: { message: M
                     }
                     <div id="msg">
                         <div id="msgcontent">
-                            {message.content}
+                            {content}
                             {message.editedTimestamp && <p id="edited">(edited)</p>}
                         </div>
                         {message.embeds?.map((embed, index) => {
